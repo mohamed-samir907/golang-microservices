@@ -11,10 +11,6 @@
 		},
 		{
 			"path": "auth-service"
-		},
-		{
-			"name": "golang-microservices",
-			"path": "."
 		}
 	]
 }
