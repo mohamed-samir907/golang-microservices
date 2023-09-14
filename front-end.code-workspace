@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "front-end"
+		},
+		{
+			"path": "broker-service"
+		},
+		{
+			"path": "project"
+		},
+		{
+			"path": "auth-service"
+		},
+		{
+			"name": "golang-microservices",
+			"path": "."
+		}
+	]
+}
