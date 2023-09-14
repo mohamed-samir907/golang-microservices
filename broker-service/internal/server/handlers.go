@@ -35,8 +35,7 @@ func Broker(c *fiber.Ctx) error {
 
 func HandleSubmission(c *fiber.Ctx) error {
 	var reqPayload requestPayload
-	err := c.ParamsParser(&reqPayload)
-	if err != nil {
+	if err := c.BodyParser(&reqPayload); err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
@@ -63,6 +62,7 @@ func authenticate(c *fiber.Ctx, a *authPayload) error {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
+	request.Header.Add("Content-Type", "application/json")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())

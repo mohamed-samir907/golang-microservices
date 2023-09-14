@@ -19,8 +19,10 @@ type jsonResponse struct {
 }
 
 func (s *Server) Auth(c *fiber.Ctx) error {
-	req := authRequest{}
-	c.ParamsParser(&req)
+	var req authRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
 
 	// Check if the user exists
 	user, err := s.Models.User.GetByEmail(req.Email)

@@ -18,7 +18,6 @@ services:
     ports:
       - "8081:80"
     environment:
-      # DSN: "host=postgres user=postgres password=password dbname=users port=5432"
       DSN: "postgres://artisan:artisan@postgres:5432/users"
     depends_on:
       - postgres
