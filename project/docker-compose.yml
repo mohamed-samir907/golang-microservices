@@ -22,6 +22,16 @@ services:
     depends_on:
       - postgres
 
+  logger-service:
+    build:
+      context: ./../logger-service
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8082:80"
+    depends_on:
+      - mongo
+
   postgres:
     image: postgres:15
     ports:
@@ -33,3 +43,15 @@ services:
       - POSTGRES_PASSWORD=artisan
     volumes:
       - ./db-data/postgres/:/var/lib/postgresql/data/
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: logs
+      MONGO_INITDB_ROOT_USERNAME: artisan
+      MONGO_INITDB_ROOT_PASSWORD: artisan
+    volumes:
+      - ./db-data/mongo/:/data/db
