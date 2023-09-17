@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -36,6 +38,10 @@ func (s *Server) Auth(c *fiber.Ctx) error {
 		return c.Status(http.StatusUnauthorized).SendString("invalid credentials")
 	}
 
+	if err = logRequest("auth", fmt.Sprintf("%s logged in", user.Email)); err != nil {
+		return c.Status(http.StatusUnauthorized).SendString(err.Error())
+	}
+
 	res := &jsonResponse{
 		Error:   false,
 		Message: fmt.Sprintf("Logged in user %s", user.Email),
@@ -43,4 +49,35 @@ func (s *Server) Auth(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(res)
+}
+
+func logRequest(name, data string) error {
+	var payload struct {
+		Name string `json:"name"`
+		Data string `json:"data"`
+	}
+
+	payload.Name = name
+	payload.Data = data
+
+	// convert struct into json string
+	jsonData, _ := json.MarshalIndent(payload, "", "\t")
+
+	// call the auth service
+	request, err := http.NewRequest(
+		http.MethodPost,
+		"http://logger-service",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return err
+	}
+
+	request.Header.Add("Content-Type", "application/json")
+	_, err = http.DefaultClient.Do(request)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
