@@ -1,8 +1,6 @@
 package server
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -17,11 +15,17 @@ type jsonResponse struct {
 type requestPayload struct {
 	Action string      `json:"action"`
 	Auth   authPayload `json:"auth,omitempty"`
+	Log    logPayload  `json:"log,omitempty"`
 }
 
 type authPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type logPayload struct {
+	Name string `json:"name"`
+	Data string `json:"data"`
 }
 
 func Broker(c *fiber.Ctx) error {
@@ -43,27 +47,36 @@ func HandleSubmission(c *fiber.Ctx) error {
 	case "auth":
 		return authenticate(c, &reqPayload.Auth)
 
+	case "log":
+		return logItem(c, &reqPayload.Log)
+
 	default:
 		return c.Status(http.StatusBadRequest).SendString("unknown action")
 	}
 }
 
-func authenticate(c *fiber.Ctx, a *authPayload) error {
-	// convert struct into json string
-	jsonData, _ := json.MarshalIndent(a, "", "\t")
+func logItem(c *fiber.Ctx, l *logPayload) error {
+	response, err := SendPostRequest("http://logger-service", l)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+	defer response.Body.Close()
 
-	// call the auth service
-	request, err := http.NewRequest(
-		http.MethodPost,
-		"http://auth-service/auth",
-		bytes.NewBuffer(jsonData),
-	)
+	// make sure we get back the correct status code
+	if response.StatusCode != http.StatusOK {
+		return c.Status(http.StatusBadRequest).SendString("error calling logger service")
+	}
+
+	jsonRes, err := ParseReponseBody(response)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
 
-	request.Header.Add("Content-Type", "application/json")
-	response, err := http.DefaultClient.Do(request)
+	return c.JSON(jsonRes)
+}
+
+func authenticate(c *fiber.Ctx, a *authPayload) error {
+	response, err := SendPostRequest("http://auth-service/auth", a)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
 	}
@@ -76,14 +89,9 @@ func authenticate(c *fiber.Ctx, a *authPayload) error {
 		return c.Status(http.StatusBadRequest).SendString("error calling auth service")
 	}
 
-	var jsonRes jsonResponse
-	err = json.NewDecoder(response.Body).Decode(&jsonRes)
+	jsonRes, err := ParseReponseBody(response)
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString(err.Error())
-	}
-
-	if jsonRes.Error {
-		return c.Status(http.StatusUnauthorized).SendString(jsonRes.Message)
 	}
 
 	payload := &jsonResponse{
