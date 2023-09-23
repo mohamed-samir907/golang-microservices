@@ -16,6 +16,7 @@ type requestPayload struct {
 	Action string      `json:"action"`
 	Auth   authPayload `json:"auth,omitempty"`
 	Log    logPayload  `json:"log,omitempty"`
+	Mail   mailPayload `json:"mail,omitempty"`
 }
 
 type authPayload struct {
@@ -26,6 +27,13 @@ type authPayload struct {
 type logPayload struct {
 	Name string `json:"name"`
 	Data string `json:"data"`
+}
+
+type mailPayload struct {
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Subject string `json:"subject"`
+	Message string `json:"message"`
 }
 
 func Broker(c *fiber.Ctx) error {
@@ -50,9 +58,32 @@ func HandleSubmission(c *fiber.Ctx) error {
 	case "log":
 		return logItem(c, &reqPayload.Log)
 
+	case "mail":
+		return sendMail(c, &reqPayload.Mail)
+
 	default:
 		return c.Status(http.StatusBadRequest).SendString("unknown action")
 	}
+}
+
+func sendMail(c *fiber.Ctx, m *mailPayload) error {
+	response, err := SendPostRequest("http://mail-service", m)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+	defer response.Body.Close()
+
+	// make sure we get back the correct status code
+	if response.StatusCode != http.StatusOK {
+		return c.Status(http.StatusBadRequest).SendString("error calling mail service")
+	}
+
+	jsonRes, err := ParseReponseBody(response)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).SendString(err.Error())
+	}
+
+	return c.JSON(jsonRes)
 }
 
 func logItem(c *fiber.Ctx, l *logPayload) error {
