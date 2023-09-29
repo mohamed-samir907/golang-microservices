@@ -7,21 +7,21 @@ MAIL_BINARY=mailApp
 ## up: starts all containers in the background without forcing build
 up:
 	@echo "Stating Docker images..."
-	docker-compose up -d
+	docker compose up -d
 	@echo "Docker images started..."
 
-## up_build: stops docker-composer (if running), build all projects and starts docker compose
+## up_build: stops docker compose (if running), build all projects and starts docker compose
 up_build: build_broker build_auth build_logger build_mail
 	@echo "Stopping docker images (if running)..."
-	docker-compose down
+	docker compose down
 	@echo "Building (when required) and starting docker images..."
-	docker-compose up -d --build
+	docker compose up -d --build
 	@echo "Docker images built and started!"
 
 ## down: stops docker compose
 down:
 	@echo "Stopping docker images..."
-	docker-compose down
+	docker compose down
 	@echo "Done!"
 
 ## build_broker: builds the broker binary
